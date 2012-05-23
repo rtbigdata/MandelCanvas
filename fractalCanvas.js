@@ -4,8 +4,12 @@ var xcenter = 3.6;
 var xoffset = -0.6;
 var yoffset = 0;
 var zoombox = [-1.85,1.85,-1.4,1.4];
+var palette = [];
+var NumColors;
 
 $(document).ready(function () {
+	//NumColors = buildPalette();
+	NumColors = buildPalette2();
 	WireEvents();
 	initiate(zoom,0,0);
 });
@@ -86,10 +90,165 @@ function pixelProc(xpoint,ypoint,n1,n2,zoom,xcenter,xoffset,yoffset,iter){
 	
 	return [0,0]; //all the small bays and rivers around the coast
 }
-	
-	
-function getColor(pixelData){
 
+
+function buildPalette(){
+
+	//rotating spectrum
+	//red, orange, yellow, green, cyan-green, cyan, cyan-blue, blue, blue-magenta, magenta, red-magenta
+	//var palette = [[255, 0, 0, 255],[255, 127, 0, 255],[255, 255, 0, 255],[0, 255, 0, 255],
+	//[0, 255, 127, 255],[0, 255, 255, 255],[0, 127, 255, 255],[0, 0, 255, 255],[127, 0, 255, 255],
+	//[255, 0, 255, 255],[255, 0, 127, 255]];
+	var paletteSize = 306;
+	//var pixelColor = pixelData[0] % paletteSize; 
+	var r = 255, g = 0, b = 0;  //set starting color
+
+	for (p = 1; p <= paletteSize; p++) {
+	
+		palette.push([r,g,b,255]);
+		
+		if (r == 255 && g < 255 && b == 0) {		//red to yellow
+			g += 5;
+		} else if (r > 0 && g == 255 && b == 0) {	//yellow to green
+			r -= 5;
+		} else if (r == 0 && g == 255 && b < 255) { //green to cyan
+			b += 5;
+		} else if (r == 0 && g > 0 && b == 255) {	//cyan to blue
+			g -= 5;
+		} else if (r < 255 && g == 0 && b == 255) { //blue to magenta
+			r += 5;
+		} else if (r == 255 && g == 0 && b > 0) {	//magenta to red
+			b -= 5;
+		}
+	}
+	return paletteSize;
+}
+	
+	
+function buildPalette2(){
+
+	//rotating spectrum
+	//red, orange, yellow, green, cyan-green, cyan, cyan-blue, blue, blue-magenta, magenta, red-magenta
+	//var palette = [[255, 0, 0, 255],[255, 127, 0, 255],[255, 255, 0, 255],[0, 255, 0, 255],
+	//[0, 255, 127, 255],[0, 255, 255, 255],[0, 127, 255, 255],[0, 0, 255, 255],[127, 0, 255, 255],
+	//[255, 0, 255, 255],[255, 0, 127, 255]];
+	var paletteSize = 204;
+	//var pixelColor = pixelData[0] % paletteSize; 
+	var r = 255, g = 0, b = 255, opacity = 255;  //set starting color
+
+	for (p = 1; p <= paletteSize; p++) {
+	
+		palette.push([r,g,b,opacity]);
+		
+		if (r == 255 && g == 0 && b == 255 && opacity > 0) {		//magenta to opaque
+			opacity -= 5;
+		} else if (opacity < 255 && b == 255) {	//opaque to cyan
+			r = 0;
+			g = 255;
+			opacity += 5;
+		} else if (r == 0 && g > 0 && b == 255) {	//cyan to blue
+			g -= 5;
+		} else if (r < 255 && g == 0 && b == 255) { //blue to magenta
+			r += 5;
+		}
+	}
+	return paletteSize;
+}
+	
+	
+function getColor(pixelData, paletteSize){
+
+	//var paletteSize = 306;	//this needs to not be hardcoded here
+	var pixelColor = pixelData[0] % paletteSize; 	
+	return palette[pixelColor];	
+}
+
+
+function initiate(zoom, xmouse, ymouse){
+
+	//set resolution of canvas here (change to size of tiles of doing those)
+	var n1 = 800;	//800x600 is a good size
+	var n2 = 600;
+	var iter = 1000;  //number of iterations
+	
+	//zoom in and recenter on mouse coords
+	xcenter = xcenter / zoom;
+	
+	if (zoom > 1) {	
+		var xquad = n1 / 2;
+		var yquad = n2 / 2;
+	
+		if (xmouse < xquad) {		//setting the real axis
+			xoffset = xoffset + ((xquad - xmouse) / xquad) * ((zoombox[0] - zoombox[1])/2) ;
+		} else {
+			xoffset = xoffset + ((xmouse - xquad) / xquad) * ((zoombox[1] - zoombox[0])/2);
+		}
+		if (ymouse < yquad) {		//the imaginary axis
+			yoffset = yoffset + ((yquad - ymouse) / yquad) * ((zoombox[2] - zoombox[3])/2);
+		} else {
+			yoffset = yoffset + ((ymouse - yquad) / yquad) * ((zoombox[3] - zoombox[2])/2);
+		}
+		
+		zoombox[1] = (zoombox[1]/zoom) + xoffset;
+		zoombox[0] = (zoombox[0]/zoom) + xoffset;
+		zoombox[2] = (zoombox[2]/zoom) + yoffset;
+		zoombox[3] = (zoombox[3]/zoom) + yoffset;	
+	}
+
+	var elem = document.getElementById('canvas');
+	elem.width = n1;
+	elem.height = n2;
+	
+	canvas = elem.getContext('2d');
+	canvas.clearRect(0,0,n1,n2);
+	var img = canvas.createImageData(n1, n2);
+		
+	var starttime = new Date()
+	var startSeconds = starttime.getTime();
+	
+	//loops have to count backwards to match coordinate system of mandelbrot set to canvas pixels
+	for (r = n2; r >= 0; r--){
+
+		for (c = n1; c >= 0; c--){
+		
+			var pixelValue = pixelProc(c,r,n1,n2,zoom,xcenter,xoffset,yoffset,iter);
+
+			if (pixelValue[0] == 0){
+				var color = [0, 0, 0, 255];
+			} else {
+				var color = getColor(pixelValue, NumColors);
+			}
+			var idx = (c + r * img.width) * 4;
+
+			//for (var p = 0, pN = pixel.length; p < pN; p += 4){
+				img.data[idx + 0] = color[0]; // the red channel
+				img.data[idx + 1] = color[1]; // the green channel
+				img.data[idx + 2] = color[2]; // the blue channel
+				img.data[idx + 3] = color[3]; // the alpha channel		
+		}
+		/*	
+		var endtime = new Date()
+		var endSeconds = endtime.getTime();
+		var elapsed = endSeconds - startSeconds;
+		console.log(elapsed + " ms");
+		*/	
+	}
+		
+	canvas.putImageData(img, 0, 0);
+	
+	var endtime = new Date()
+	var endSeconds = endtime.getTime();
+	var elapsed = endSeconds - startSeconds;
+	console.log(elapsed + " ms");
+	//console.log(zoombox[0]+","+zoombox[1]+","+zoombox[2]+","+zoombox[3]);
+	console.log(xoffset.toFixed(6) +", "+ yoffset.toFixed(6) +", "+xcenter.toFixed(6));
+	
+}
+
+// window.addEventListener("load", initiate(0,0), false);
+
+//the following code can go into buildPalette algos now instead of getColor	
+	/*
 	//rotating spectrum
 	//red, orange, yellow, green, cyan-green, cyan, cyan-blue, blue, blue-magenta, magenta, red-magenta
 	//var palette = [[255, 0, 0, 255],[255, 127, 0, 255],[255, 255, 0, 255],[0, 255, 0, 255],
@@ -116,7 +275,7 @@ function getColor(pixelData){
 	}
 	
 	return [r,g,b,255];	
-	
+	*/
 	/*
 	for (p = 1; p <= pixelColor; p++) {
 		if (r == 255 && g < 255 && b == 0) {		//red to yellow
@@ -273,91 +432,7 @@ function getColor(pixelData){
 	//return [pcolor, pcolor, pcolor, 255];  //grayscale
 	return [pcolor, 0, 0, 255];  //reds
 	*/
-}
-
-
-function initiate(zoom, xmouse, ymouse){
-
-	//set resolution of canvas here (change to size of tiles of doing those)
-	var n1 = 800;	//800x600 is a good size
-	var n2 = 600;
-	var iter = 1000;  //number of iterations
-	
-	//zoom in and recenter on mouse coords
-	xcenter = xcenter / zoom;
-	
-	if (zoom > 1) {	
-		var xquad = n1 / 2;
-		var yquad = n2 / 2;
-	
-		if (xmouse < xquad) {		//setting the real axis
-			xoffset = xoffset + ((xquad - xmouse) / xquad) * ((zoombox[0] - zoombox[1])/2) ;
-		} else {
-			xoffset = xoffset + ((xmouse - xquad) / xquad) * ((zoombox[1] - zoombox[0])/2);
-		}
-		if (ymouse < yquad) {		//the imaginary axis
-			yoffset = yoffset + ((yquad - ymouse) / yquad) * ((zoombox[2] - zoombox[3])/2);
-		} else {
-			yoffset = yoffset + ((ymouse - yquad) / yquad) * ((zoombox[3] - zoombox[2])/2);
-		}
-		
-		zoombox[1] = (zoombox[1]/zoom) + xoffset;
-		zoombox[0] = (zoombox[0]/zoom) + xoffset;
-		zoombox[2] = (zoombox[2]/zoom) + yoffset;
-		zoombox[3] = (zoombox[3]/zoom) + yoffset;	
-	}
-
-	var elem = document.getElementById('canvas');
-	elem.width = n1;
-	elem.height = n2;
-	
-	canvas = elem.getContext('2d');
-	canvas.clearRect(0,0,n1,n2);
-	var img = canvas.createImageData(n1, n2);
-		
-	var starttime = new Date()
-	var startSeconds = starttime.getTime();
-	
-	//loops have to count backwards to match coordinate system of mandelbrot set to canvas pixels
-	for (r = n2; r >= 0; r--){
-
-		for (c = n1; c >= 0; c--){
-		
-			var pixelValue = pixelProc(c,r,n1,n2,zoom,xcenter,xoffset,yoffset,iter);
-
-			if (pixelValue[0] == 0){
-				var color = [0, 0, 0, 255];
-			} else {
-				var color = getColor(pixelValue);
-			}
-			var idx = (c + r * img.width) * 4;
-
-			//for (var p = 0, pN = pixel.length; p < pN; p += 4){
-				img.data[idx + 0] = color[0]; // the red channel
-				img.data[idx + 1] = color[1]; // the green channel
-				img.data[idx + 2] = color[2]; // the blue channel
-				img.data[idx + 3] = color[3]; // the alpha channel		
-		}
-		/*	
-		var endtime = new Date()
-		var endSeconds = endtime.getTime();
-		var elapsed = endSeconds - startSeconds;
-		console.log(elapsed + " ms");
-		*/	
-	}
-		
-	canvas.putImageData(img, 0, 0);
-	
-	var endtime = new Date()
-	var endSeconds = endtime.getTime();
-	var elapsed = endSeconds - startSeconds;
-	console.log(elapsed + " ms");
-	//console.log(zoombox[0]+","+zoombox[1]+","+zoombox[2]+","+zoombox[3]);
-	console.log(xoffset.toFixed(6) +", "+ yoffset.toFixed(6) +", "+xcenter.toFixed(6));
-	
-}
-
-// window.addEventListener("load", initiate(0,0), false);
+//}
 
 //various color algos
 
