@@ -1,15 +1,23 @@
 //init global vars to center on zoomed-out fractal
+/*
 var zoom = 1;
 var xcenter = 3.6;
 var xoffset = -0.6;
 var yoffset = 0;
 var zoombox = [-1.85,1.85,-1.4,1.4];
+*/
+var zoom = 1;
+var xcenter = 3.2;
+var xoffset = -0.6;
+var yoffset = 0;
+var zoombox = [-1.64,1.64,-1.26,1.26];
+
 var palette = [];
 var NumColors;
 
 $(document).ready(function () {
 	//NumColors = buildPalette();
-	NumColors = buildPalette2();
+	NumColors = buildPalette3();
 	WireEvents();
 	initiate(zoom,0,0);
 });
@@ -151,7 +159,58 @@ function buildPalette2(){
 	return paletteSize;
 }
 	
+
+function buildPalette3(){
+
+	//rotating spectrum
+	var paletteSize = 153;
+	//var pixelColor = pixelData[0] % paletteSize; 
+	var r = 255, g = 0, b = 255, opacity = 255;  //set starting color
+
+	for (p = 1; p <= paletteSize; p++) {
 	
+		palette.push([r,g,b,opacity]);
+		
+		if (r == 255 && g == 0 && b == 255 && opacity > 0) {		//magenta to opaque
+			opacity -= 5;
+		} else if (opacity < 255 && b == 255) {	//opaque to blue
+			r = 0;
+			b = 255;
+			opacity += 5;
+		} else if (r < 255 && g == 0 && b == 255) { //blue to magenta
+			r += 5;
+		}
+	}
+	return paletteSize;
+}
+
+function buildPalette4(){
+
+	//xmas scheme
+	var paletteSize = 153;
+	//var pixelColor = pixelData[0] % paletteSize; 
+	var r = 0, g = 255, b = 0, opacity = 255;  //set starting color
+
+	for (p = 1; p <= paletteSize; p++) {
+	
+		palette.push([r,g,b,opacity]);
+		
+		if (r == 0 && g == 255 && b == 0 && opacity > 0) {		//magenta to opaque
+			opacity -= 5;
+		} else if (opacity < 255) {	//opaque to blue
+			r = 255;
+			g = 0;
+			b = 0;
+			opacity += 5;
+		} else if (b == 0 && g < 255) { //blue to magenta
+			r -= 5;
+			g += 5;
+		}
+	}
+	return paletteSize;
+}
+
+
 function getColor(pixelData, paletteSize){
 
 	//var paletteSize = 306;	//this needs to not be hardcoded here
@@ -237,7 +296,7 @@ function initiate(zoom, xmouse, ymouse){
 	var elapsed = endSeconds - startSeconds;
 	console.log(elapsed + " ms");
 	//console.log(zoombox[0]+","+zoombox[1]+","+zoombox[2]+","+zoombox[3]);
-	console.log(xmouse +", "+ ymouse);
+	//console.log(xmouse +", "+ ymouse);
 	console.log(xoffset.toFixed(6) +", "+ yoffset.toFixed(6) +", "+xcenter.toFixed(6));
 	
 }
