@@ -15,8 +15,6 @@ Known issues (this is highly experimental and basically my second project in jav
 Zoom is slightly inaccurate by a few pixels, since the mouse position is relative to the start of
 the page as opposed to the start of the canvas element.
 
-It looks like the far right column of pixels is getting drawn on the far left of the image
-
 Proposed Enhancements:
 
 UI to input and display fractal parameters
