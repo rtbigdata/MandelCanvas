@@ -11,7 +11,8 @@ var xcenter = 3.2;
 var xoffset = -0.6;
 var yoffset = 0;
 var zoombox = [-1.64,1.64,-1.26,1.26];
-//var iter;
+var views = [];  //array to hold settings for all zoom levels
+var viewSetting = {};
 
 //var iter;  //number of iterations
 var palette = [];
@@ -21,7 +22,19 @@ $(document).ready(function () {
 	//NumColors = buildPalette();
 	NumColors = buildPalette6();
 	WireEvents();
-	initiate(zoom,0,0);
+	var xmouse = 0;
+	var ymouse = 0;
+	viewSetting = {
+		zoombox: zoombox,
+		xcenter: xcenter,
+		xoffset: xoffset,
+		yoffset: yoffset,
+		xmouse: xmouse,
+		ymouse: ymouse,
+		zoom: zoom
+	};
+	views.push(viewSetting);
+	initiate(zoom,xmouse,ymouse);
 });
 
 function WireEvents() {
@@ -33,9 +46,30 @@ function WireEvents() {
 	.mouseup(function (e) {
 		var xmouse = e.clientX;
 		var ymouse = e.clientY;
-		//var iter = $('#iteration').val();
+		viewSetting = {
+			zoombox: zoombox,
+			xcenter: xcenter,
+			xoffset: xoffset,
+			yoffset: yoffset,
+			xmouse: xmouse,
+			ymouse: ymouse,
+			zoom: zoom
+		};
+		views.push(viewSetting);
 		initiate(zoom += 1,xmouse,ymouse);
 		//$(this).text('X: ' + e.pageX + ' Y: ' + e.pageY);
+	});
+	
+	$('#zoomout').click(function() {
+		viewSetting = views.pop(); 
+		zoombox = viewSetting.zoombox,
+		xcenter = viewSetting.xcenter,
+		xoffset = viewSetting.xoffset,
+		yoffset = viewSetting.yoffset,
+		xmouse = viewSetting.xmouse,
+		ymouse = viewSetting.ymouse,
+		zoom = viewSetting.zoom		
+		initiate(zoom,xmouse,ymouse);
 	});
 };
 
@@ -281,7 +315,6 @@ function initiate(zoom, xmouse, ymouse){
 	var textInput = document.getElementById('iteration');
 	var iter = parseInt(textInput.value);
 	//var iter = $('#iteration').val();
-	//var iter = 1000;
 	
 	//set resolution of canvas here (change to size of tiles of doing those)
 	var n1 = 800;	//800x600 is a good size
