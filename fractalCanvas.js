@@ -11,13 +11,15 @@ var xcenter = 3.2;
 var xoffset = -0.6;
 var yoffset = 0;
 var zoombox = [-1.64,1.64,-1.26,1.26];
+//var iter;
 
+//var iter;  //number of iterations
 var palette = [];
 var NumColors;
 
 $(document).ready(function () {
 	//NumColors = buildPalette();
-	NumColors = buildPalette3();
+	NumColors = buildPalette();
 	WireEvents();
 	initiate(zoom,0,0);
 });
@@ -31,6 +33,7 @@ function WireEvents() {
 	.mouseup(function (e) {
 		var xmouse = e.clientX;
 		var ymouse = e.clientY;
+		//var iter = $('#iteration').val();
 		initiate(zoom += 1,xmouse,ymouse);
 		//$(this).text('X: ' + e.pageX + ' Y: ' + e.pageY);
 	});
@@ -221,10 +224,14 @@ function getColor(pixelData, paletteSize){
 
 function initiate(zoom, xmouse, ymouse){
 
+	var textInput = document.getElementById('iteration');
+	var iter = parseInt(textInput.value);
+	//var iter = $('#iteration').val();
+	//var iter = 1000;
+	
 	//set resolution of canvas here (change to size of tiles of doing those)
 	var n1 = 800;	//800x600 is a good size
 	var n2 = 600;
-	var iter = 1000;  //number of iterations
 	
 	//zoom in and recenter on mouse coords
 	xcenter = xcenter / zoom;
