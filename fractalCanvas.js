@@ -19,7 +19,7 @@ var NumColors;
 
 $(document).ready(function () {
 	//NumColors = buildPalette();
-	NumColors = buildPalette();
+	NumColors = buildPalette6();
 	WireEvents();
 	initiate(zoom,0,0);
 });
@@ -198,16 +198,70 @@ function buildPalette4(){
 	
 		palette.push([r,g,b,opacity]);
 		
-		if (r == 0 && g == 255 && b == 0 && opacity > 0) {		//magenta to opaque
+		if (r == 0 && g == 255 && b == 0 && opacity > 0) {
 			opacity -= 5;
-		} else if (opacity < 255) {	//opaque to blue
+		} else if (opacity < 255) {
 			r = 255;
 			g = 0;
 			b = 0;
 			opacity += 5;
-		} else if (b == 0 && g < 255) { //blue to magenta
+		} else if (b == 0 && g < 255) {
 			r -= 5;
 			g += 5;
+		}
+	}
+	return paletteSize;
+}
+
+function buildPalette5(){
+
+	//independence day
+	var paletteSize = 153;
+	//var pixelColor = pixelData[0] % paletteSize; 
+	var r = 0, g = 0, b = 255, opacity = 255;  //set starting color
+
+	for (p = 1; p <= paletteSize; p++) {
+	
+		palette.push([r,g,b,opacity]);
+		
+		if (r == 0 && g == 0 && b == 255 && opacity > 0) {		//blue to opaque
+			opacity -= 5;
+		} else if (opacity < 255) {	//opaque to red
+			r = 255;
+			g = 0;
+			b = 0;
+			opacity += 5;
+		} else if (r > 0 && b < 255) { //red to blue
+			r -= 5;
+			b += 5;
+		}
+	}
+	return paletteSize;
+}
+
+function buildPalette6(){
+
+	//independence day
+	var paletteSize = 179;
+	//var pixelColor = pixelData[0] % paletteSize; 
+	var r = 255, g = 0, b = 0, opacity = 255;  //set starting color
+
+	for (p = 1; p <= paletteSize; p++) {
+	
+		palette.push([r,g,b,opacity]);
+		
+		if (r == 255 && g < 130 && b == 0 && opacity == 255) {		//red to orange
+			g += 5;
+		} else if (opacity > 0 && r == 255 && g == 130) {
+			opacity -= 5;
+		} else if (opacity < 255) {	//opaque to 
+			r = 0;
+			g = 0;
+			b = 255;
+			opacity += 5;
+		} else if (opacity == 255 && r < 255 && b > 0) { //blue to magenta
+			r += 5;
+			b -= 5;
 		}
 	}
 	return paletteSize;
