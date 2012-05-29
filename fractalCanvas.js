@@ -1,20 +1,13 @@
 //init global vars to center on zoomed-out fractal
 /*
-var zoom = 1;
-var xcenter = 3.6;
-var xoffset = -0.6;
-var yoffset = 0;
-var zoombox = [-1.85,1.85,-1.4,1.4];
-*/
-var zoom = 1;
 var xcenter = 3.2;
 var xoffset = -0.6;
 var yoffset = 0;
-var zoombox = [-1.64,1.64,-1.26,1.26];
-var views = [];  //array to hold settings for all zoom levels
-var viewSetting = {};
+*/
 
-//var iter;  //number of iterations
+var zoom = 1;
+var goback = 0;
+var views = [];  //array to hold settings for all zoom levels
 var palette = [];
 var NumColors;
 
@@ -22,19 +15,7 @@ $(document).ready(function () {
 	//NumColors = buildPalette();
 	NumColors = buildPalette6();
 	WireEvents();
-	var xmouse = 0;
-	var ymouse = 0;
-	viewSetting = {
-		zoombox: zoombox,
-		xcenter: xcenter,
-		xoffset: xoffset,
-		yoffset: yoffset,
-		xmouse: xmouse,
-		ymouse: ymouse,
-		zoom: zoom
-	};
-	views.push(viewSetting);
-	initiate(zoom,xmouse,ymouse);
+	initiate(zoom,0,0,goback);
 });
 
 function WireEvents() {
@@ -46,34 +27,19 @@ function WireEvents() {
 	.mouseup(function (e) {
 		var xmouse = e.clientX;
 		var ymouse = e.clientY;
-		viewSetting = {
-			zoombox: zoombox,
-			xcenter: xcenter,
-			xoffset: xoffset,
-			yoffset: yoffset,
-			xmouse: xmouse,
-			ymouse: ymouse,
-			zoom: zoom
-		};
-		views.push(viewSetting);
-		initiate(zoom += 1,xmouse,ymouse);
+		goback = 0;
+		initiate(zoom += 1,xmouse,ymouse,goback);
 		//$(this).text('X: ' + e.pageX + ' Y: ' + e.pageY);
 	});
 	
 	$('#zoomout').click(function() {
-		viewSetting = views.pop(); 
-		zoombox = viewSetting.zoombox,
-		xcenter = viewSetting.xcenter,
-		xoffset = viewSetting.xoffset,
-		yoffset = viewSetting.yoffset,
-		xmouse = viewSetting.xmouse,
-		ymouse = viewSetting.ymouse,
-		zoom = viewSetting.zoom		
-		initiate(zoom,xmouse,ymouse);
+		goback = 1;
+		views.pop();
+		initiate(zoom -= 1,0,0,goback);
 	});
 };
 
-function pixelProc(xpoint,ypoint,n1,n2,zoom,xcenter,xoffset,yoffset,iter){
+function pixelProc(xpoint,ypoint,n1,n2,xcenter,xoffset,yoffset,iter){
 
 	// eg. n1 = 320, var n2 = 240;
 	var i = xpoint - (n1 / 2);
@@ -134,6 +100,119 @@ function pixelProc(xpoint,ypoint,n1,n2,zoom,xcenter,xoffset,yoffset,iter){
 	}
 	
 	return [0,0]; //all the small bays and rivers around the coast
+}
+
+
+function getColor(pixelData, paletteSize){
+
+	//var paletteSize = 306;	//this needs to not be hardcoded here
+	var pixelColor = pixelData[0] % paletteSize; 	
+	return palette[pixelColor];	
+}
+
+
+//function initiate(zoom, xmouse, ymouse){
+function initiate(zoom,xmouse,ymouse){
+
+	var textInput = document.getElementById('iteration');
+	var iter = parseInt(textInput.value);
+	//var iter = $('#iteration').val();
+	
+	//set resolution of canvas here (change to size of tiles of doing those)
+	var n1 = 800;	//800x600 is a good size
+	var n2 = 600;
+	
+	//zoom in and recenter on mouse coords
+	if (zoom > 1 && goback == 0) {	
+	
+		var viewSetting = views.pop();
+		var xcenter = viewSetting.xcenter;
+		var xoffset = viewSetting.xoffset;
+		var yoffset = viewSetting.yoffset;
+		views.push(viewSetting);
+
+		var ycenter = xcenter * 0.75;
+		var extentLeft = xoffset - (xcenter / 2);
+		xoffset = extentLeft + ((xmouse / n1) * xcenter);
+		
+		xcenter = xcenter / zoom;
+		var extentTop = yoffset - (ycenter / 2);
+		yoffset = extentTop + ((ymouse / n2) * ycenter);
+
+		var newSetting = {};
+		newSetting = {
+			xcenter: xcenter,
+			xoffset: xoffset,
+			yoffset: yoffset
+		};
+		views.push(newSetting);
+	} else if (goback == 1) {
+		var priorSetting = views.pop();
+		var xcenter = priorSetting.xcenter;
+		var xoffset = priorSetting.xoffset;
+		var yoffset = priorSetting.yoffset;
+		views.push(priorSetting);
+	} else {
+		var xcenter = 3.2;
+		var xoffset = -0.6;
+		var yoffset = 0;
+
+		var viewSetting = {
+			xcenter: xcenter,
+			xoffset: xoffset,
+			yoffset: yoffset
+		};
+		views.push(viewSetting);
+	}
+
+	var elem = document.getElementById('canvas');
+	elem.width = n1;
+	elem.height = n2;
+	
+	canvas = elem.getContext('2d');
+	canvas.clearRect(0,0,n1,n2);
+	var img = canvas.createImageData(n1, n2);
+		
+	var starttime = new Date()
+	var startSeconds = starttime.getTime();
+	
+	//loops have to count backwards to match coordinate system of mandelbrot set to canvas pixels
+	for (r = n2 - 1; r >= 0; r--){
+
+		for (c = n1 - 1; c >= 0; c--){
+		
+			var pixelValue = pixelProc(c,r,n1,n2,xcenter,xoffset,yoffset,iter);
+
+			if (pixelValue[0] == 0){
+				var color = [0, 0, 0, 255];
+			} else {
+				var color = getColor(pixelValue, NumColors);
+			}
+			var idx = (c + r * img.width) * 4;
+
+			//for (var p = 0, pN = pixel.length; p < pN; p += 4){
+				img.data[idx + 0] = color[0]; // the red channel
+				img.data[idx + 1] = color[1]; // the green channel
+				img.data[idx + 2] = color[2]; // the blue channel
+				img.data[idx + 3] = color[3]; // the alpha channel		
+		}
+		/*	
+		var endtime = new Date()
+		var endSeconds = endtime.getTime();
+		var elapsed = endSeconds - startSeconds;
+		console.log(elapsed + " ms");
+		*/	
+	}
+		
+	canvas.putImageData(img, 0, 0);
+		
+	var endtime = new Date()
+	var endSeconds = endtime.getTime();
+	var elapsed = endSeconds - startSeconds;
+	console.log(elapsed + " ms");
+	console.log(xmouse +", "+ ymouse);
+	console.log(xoffset.toFixed(6) +", "+ yoffset.toFixed(6) +", "+xcenter.toFixed(6));
+	console.log(zoom);
 }
 
 
@@ -300,98 +379,3 @@ function buildPalette6(){
 	}
 	return paletteSize;
 }
-
-
-function getColor(pixelData, paletteSize){
-
-	//var paletteSize = 306;	//this needs to not be hardcoded here
-	var pixelColor = pixelData[0] % paletteSize; 	
-	return palette[pixelColor];	
-}
-
-
-function initiate(zoom, xmouse, ymouse){
-
-	var textInput = document.getElementById('iteration');
-	var iter = parseInt(textInput.value);
-	//var iter = $('#iteration').val();
-	
-	//set resolution of canvas here (change to size of tiles of doing those)
-	var n1 = 800;	//800x600 is a good size
-	var n2 = 600;
-	
-	//zoom in and recenter on mouse coords
-	xcenter = xcenter / zoom;
-	
-	if (zoom > 1) {	
-		var xquad = n1 / 2;
-		var yquad = n2 / 2;
-	
-		if (xmouse < xquad) {		//setting the real axis
-			xoffset = xoffset + ((xquad - xmouse) / xquad) * ((zoombox[0] - zoombox[1])/2) ;
-		} else {
-			xoffset = xoffset + ((xmouse - xquad) / xquad) * ((zoombox[1] - zoombox[0])/2);
-		}
-		if (ymouse < yquad) {		//the imaginary axis
-			yoffset = yoffset + ((yquad - ymouse) / yquad) * ((zoombox[2] - zoombox[3])/2);
-		} else {
-			yoffset = yoffset + ((ymouse - yquad) / yquad) * ((zoombox[3] - zoombox[2])/2);
-		}
-		
-		zoombox[1] = (zoombox[1]/zoom) + xoffset;
-		zoombox[0] = (zoombox[0]/zoom) + xoffset;
-		zoombox[2] = (zoombox[2]/zoom) + yoffset;
-		zoombox[3] = (zoombox[3]/zoom) + yoffset;	
-	}
-
-	var elem = document.getElementById('canvas');
-	elem.width = n1;
-	elem.height = n2;
-	
-	canvas = elem.getContext('2d');
-	canvas.clearRect(0,0,n1,n2);
-	var img = canvas.createImageData(n1, n2);
-		
-	var starttime = new Date()
-	var startSeconds = starttime.getTime();
-	
-	//loops have to count backwards to match coordinate system of mandelbrot set to canvas pixels
-	for (r = n2 - 1; r >= 0; r--){
-
-		for (c = n1 - 1; c >= 0; c--){
-		
-			var pixelValue = pixelProc(c,r,n1,n2,zoom,xcenter,xoffset,yoffset,iter);
-
-			if (pixelValue[0] == 0){
-				var color = [0, 0, 0, 255];
-			} else {
-				var color = getColor(pixelValue, NumColors);
-			}
-			var idx = (c + r * img.width) * 4;
-
-			//for (var p = 0, pN = pixel.length; p < pN; p += 4){
-				img.data[idx + 0] = color[0]; // the red channel
-				img.data[idx + 1] = color[1]; // the green channel
-				img.data[idx + 2] = color[2]; // the blue channel
-				img.data[idx + 3] = color[3]; // the alpha channel		
-		}
-		/*	
-		var endtime = new Date()
-		var endSeconds = endtime.getTime();
-		var elapsed = endSeconds - startSeconds;
-		console.log(elapsed + " ms");
-		*/	
-	}
-		
-	canvas.putImageData(img, 0, 0);
-	
-	var endtime = new Date()
-	var endSeconds = endtime.getTime();
-	var elapsed = endSeconds - startSeconds;
-	console.log(elapsed + " ms");
-	//console.log(zoombox[0]+","+zoombox[1]+","+zoombox[2]+","+zoombox[3]);
-	//console.log(xmouse +", "+ ymouse);
-	console.log(xoffset.toFixed(6) +", "+ yoffset.toFixed(6) +", "+xcenter.toFixed(6));
-	
-}
-
